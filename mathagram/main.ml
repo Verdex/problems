@@ -13,6 +13,14 @@ let p v =
     | `One(None, _) -> "??x" 
 ;;
 
+let rec skip l i = 
+    match l with
+    | [] -> []
+    | h::t -> (match i with 
+               | 0 -> h::t
+               | _ -> skip t (i-1))
+;;
+
 let (|>) a b = b a
 ;;
 
@@ -39,8 +47,18 @@ let is_variable i =
         | _ -> false
 ;;
 
+let to_constant i v =
+    match i with
+    | `Hun(_,x) -> `Hun(Some(v), x)
+    | `Ten(_,x) -> `Ten(Some(v), x)
+    | `One(_,x) -> `One(Some(v), x)
+;;
+
+(* this sum probably only works in continue*)
+let sum l = List.map proj l |> List.fold_left (+) 0
+;;
+
 let continue lhs rhs =
-    let sum l = List.map proj l |> List.fold_left (+) 0 in
     let has_unknown = List.exists is_variable in
     let has_unknown_or_equal r l = 
         (has_unknown r || has_unknown l) || ((sum r) = (sum l))
@@ -57,14 +75,36 @@ let continue lhs rhs =
 ;;
 
 let rec solve lhs rhs numbers =
-    let lhs_constants = List.filter is_constant lhs in
-    let lhs_variables = List.filter is_variable lhs in
-    let rhs_constants = List.filter is_constant rhs in
-    let rhs_constants = List.filter is_variable rhs in
-    true
+    let rec blarg v c r ns =
+        match ns with
+        | [] -> (false, [], [])
+        | n::t -> (
+
+        )
+
+    if continue lhs rhs then
+        let lhs_constants = List.filter is_constant lhs in
+        let lhs_variables = List.filter is_variable lhs in
+        let rhs_constants = List.filter is_constant rhs in
+        let rhs_variables = List.filter is_variable rhs in
+
+        if (List.length lhs_variables) <> 0 then
+            let v = List.nth lhs_variables 0 in
+            
+            let n = List.nth numbers 0 in
+            solve (lhs_constants @ (skip lhs_variables 1)) rhs (skip numbers 1) 
+            (true, [], [])
+        else if (List.length rhs_variables) <> 0 then
+            (true, [], [])
+        else
+            (true, lhs_constants, rhs_constants) 
+    else
+        (false, [], [])
 
 ;;
 List.iter (fun x -> Printf.printf "%s\n" (p x)) one_rhs
 ;;
 Printf.printf "%B\n" (continue one_lhs one_rhs)
-
+;;
+let (b, lhs, rsh) = solve one_lhs one_rhs [1,2,3] in
+    Printf.printf "success %B\n" b
