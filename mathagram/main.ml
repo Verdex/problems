@@ -1,33 +1,4 @@
-type term = { hun : int option
-            ; ten : int option
-            ; one : int option
-            }
-;;
-
-type eq = { lhs : term list
-          ; rhs : term list
-          }
-;;
-
-let display eq = 
-    let c_display = function Some i -> Printf.sprintf "%d" i | None -> "x" in
-    let term_display t =
-        Printf.sprintf "%s%s%s" (c_display t.hun) (c_display t.ten) (c_display t.one)
-    in
-    List.iter (fun v -> Printf.printf "%s " (term_display v)) eq.lhs
-    ;
-    Printf.printf "= "
-    ;
-    List.iter (fun v -> Printf.printf "%s " (term_display v)) eq.rhs
-    ;
-    Printf.printf "\n"
-;;
-
-let one = { lhs = [ { hun = Some(1); ten = None; one = None } ; 
-                    { hun = None; ten = None; one = None } ]
-          ; rhs = [ { hun = Some(4); ten = Some(6); one = Some(8) } ] 
-          }
-
+let (|>) a b = b a
 ;;
 
 let rec skip l i = 
@@ -38,7 +9,29 @@ let rec skip l i =
                | _ -> skip t (i-1))
 ;;
 
-let (|>) a b = b a
+let one_lhs = [ `Hun(Some(1), 1) ; `Ten(None, 1) ; `One(None, 1) 
+              ; `Hun(None, 2) ; `Ten(None, 2) ; `One(None, 2)
+              ]
 ;;
 
-display one
+let one_rhs = [ `Hun(Some(4), 1) ; `Ten(Some(6), 1) ; `One(Some(8), 1) ]
+;;
+
+let display l =
+    let terms = List.map (function `Hun(_, x) -> x | `Ten(_, x) -> x | `One(_, x) -> x) l
+              |> distinct
+    in
+    terms
+;; 
+
+let rec remove_first n l = 
+    match l with
+    | [] -> []
+    | (h::t) when h = n -> t 
+    | (h::t) -> h :: (remove_first n t)
+
+;;
+
+let solve eq numbers =  
+         
+
