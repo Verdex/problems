@@ -4,3 +4,4 @@ a.out
 *.cmx
 solve
 *.o
+unify
