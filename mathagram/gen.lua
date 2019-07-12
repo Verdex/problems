@@ -7,8 +7,44 @@ function rev(l)
     return ret
 end
 
+function any(l, pred)
+    for _, k in ipairs(l) do
+        if pred(k) then
+            return true
+        end
+    end
+    return false
+end
+
+function forall(l, pred)
+    for _, k in ipairs(l) do
+        if not pred(k) then
+            return false
+        end
+    end
+    return true
+end
+
+function map(l, t)
+    local ret = {}
+    for _, k in ipairs(l) do
+        ret[#ret+1] = t(k)
+    end
+    return ret
+end
+
+function filter(l, pred)
+    local ret = {}
+    for _, k in ipairs(l) do
+        if pred(k) then
+            ret[#ret+1] = k
+        end
+    end
+    return ret
+end
+
 function avail_from_env(env)
-    
+     
 end
 
 local symbol_count = 0
