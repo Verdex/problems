@@ -43,8 +43,50 @@ function filter(l, pred)
     return ret
 end
 
+function determine_tier(env)
+    local keys = {}
+    local left_count = 0
+    local right_count = 0
+    for k,_ in pairs(env) do
+        if string.sub(k, 1, 1) == 'l' then
+            left_count = left_count + 1
+        end
+        if string.sub(k, 1, 1) == 'r' then
+            right_count = right_count + 1
+        end
+    end
+    if left_count == 6 and right_count == 3 then 
+        return 1
+    elseif left_count == 12 and right_count == 6 then
+        return 2
+    elseif left_count == 15 and right_count == 12 then
+        return 3
+    else
+        error("unknown tier encountered")
+    end
+end
+
 function avail_from_env(env)
-     
+    local used = {}
+    for _, v in pairs(env) do
+        if v ~= 0 then
+            used[#used+1] = v
+        end
+    end
+    local tier = determine_tier(env)
+    local pool = {} 
+    if tier == 1 then
+        pool = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    elseif tier == 2 then
+        pool = { 1, 2, 3, 4, 5, 6, 7, 8, 9 , 
+                 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    elseif tier == 3 then
+        pool = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+                 1, 2, 3, 4, 5, 6, 7, 8, 9, 
+                 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    end
+    local avail = filter(pool, function (p) return forall(used, function(u) return u ~= p end) end )
+    return "{" .. table.concat( avail, ", " ) .. "}" 
 end
 
 local symbol_count = 0
@@ -89,18 +131,55 @@ end
 local z = comprehension("ikky", { {name = "blarg"; gen = "{1,2,3}"  } 
                                   , {name = "ikky"; gen = "{4,5,6}" } }, "true") 
 
-function solve(env, tier) 
-
+function solve(env) 
+    local filter_code = [[
+function filter(l, pred)
+    local ret = {}
+    for _, k in ipairs(l) do
+        if pred(k) then
+            ret[#ret+1] = k
+        end
+    end
+    return ret
 end
 
-load("local x = " .. z .. [[
+]]
 
-for _,v in ipairs(x) do
-print(v)
+    local avail_code = string.format( [[
+avail = %s
+
+]], avail_from_env(env) )
+
+    local pre_defined = {}
+    local variables = {}
+    for k, v in pairs(env) do
+        if v ~= 0 then
+            pre_defined[#pre_defined+1] = {name=k, value=v}
+        else
+           variables[#variables+1] = k 
+        end
+    end
+
+    local constants_list = map(pre_defined, function(c) return c.name .. " = " .. c.value end)
+    local constants_code = table.concat( constants_list, "\n" )
+
+    return filter_code 
+        .. avail_code
+        .. constants_code
 end
-]])()
 
+local output = solve { lhs_hun_1 = 1
+      , lhs_ten_1 = 0
+      , lhs_one_1 = 0
+      , lhs_hun_2 = 0
+      , lhs_ten_2 = 0
+      , lhs_one_2 = 0
+      , rhs_hun_1 = 4
+      , rhs_ten_1 = 6
+      , rhs_one_1 = 8
+      }
 
+print(output)
 --[[
 
 emit filter 
