@@ -164,7 +164,7 @@ end
 function one_gen(target, lhs, rhs)
     local gen_name = gensym(target .. '_one_gen')
     if #lhs == 0 and #rhs == 0 then
-        return string.format([[
+        return gen_name, string.format([[
 function %s() 
     return avail
 end
@@ -222,7 +222,7 @@ avail = %s
     end
 
     local constants_list = map(pre_defined, function(c) return c.name .. " = " .. c.value end)
-    local constants_code = table.concat( constants_list, "\n" )
+    local constants_code = table.concat( constants_list, "\n" ) .. "\n"
 
     local lhs_ones = filter(variables, function (v) return string.sub(v, 1, 1) == 'l' 
                                                        and string.sub(v, -5, -3) == 'one' end )
@@ -236,13 +236,20 @@ avail = %s
                                                        and string.sub(v, -5, -3) == 'ten' end )
     local rhs_huns = filter(variables, function (v) return string.sub(v, 1, 1) == 'r' 
                                                        and string.sub(v, -5, -3) == 'hun' end )
-    local x, y = one_gen("blarg", {"blah", "ikky"}, {"warp", "zap"})
-    print(x)
-    print(y)
+
+    
+    local lhs_one_dep = {}
+    local generators_code = {}
+    for _, v in ipairs(lhs_ones) do
+        local gen_name, gen_code = one_gen(v, lhs_one_dep, {})
+        lhs_one_dep[#lhs_one_dep+1] = v
+        generators_code[#generators_code+1] = gen_code 
+    end
 
     return filter_code 
         .. avail_code
         .. constants_code
+        .. table.concat(generators_code, "\n")
 end
 
 local output = solve { lhs_hun_1 = 1
