@@ -1,4 +1,15 @@
 
+function append(a, b)
+    local ret = {}
+    for _, v in ipairs(a) do
+        ret[#ret+1] = v
+    end
+    for _, v in ipairs(b) do
+        ret[#ret+1] = v
+    end
+    return ret
+end
+
 function rev(l)
     local ret = {}
     for k, v in ipairs(l) do
@@ -132,6 +143,55 @@ local z = comprehension("ikky", { {name = "blarg"; gen = "{1,2,3}"  }
                                   , {name = "ikky"; gen = "{4,5,6}" } }, "true") 
 
 
+        --[=[local format = [[
+function %s(%s)
+    if %s then return {} end
+    local ret = filter(avail, function(a) return %s end)
+    return ret 
+end
+]]
+
+        local empty_return_predicate_code = 
+            "(" .. table.concat(lhs, " + ") .. ") % 10"
+            .. " ~= "
+            .. "(" .. table.concat(rhs, " + " ) .. ") % 10"
+        return gen_name, string.format(format, 
+                                       gen_name,
+                                       left_dep .. lr_connector .. right_dep,
+                                       empty_return_predicate_code,
+                                       and_code) --]=]
+
+function one_gen(target, lhs, rhs)
+    local gen_name = gensym(target .. '_one_gen')
+    if #lhs == 0 and #rhs == 0 then
+        return string.format([[
+function %s() 
+    return avail
+end
+]], gen_name)
+    end
+    local left_dep = table.concat(lhs, ", ")
+    local right_dep = table.concat(rhs, ", ")
+    local lr_connector = ''
+    if right_dep ~= '' and left_dep ~= '' then
+        lr_connector = ', '
+    end
+    local deps = append(lhs, rhs)
+    local and_code = table.concat( map(deps, function (d) return d .. " ~= a" end), " and " )
+
+    local format = [[
+function %s(%s)
+local ret = filter(avail, function(a) return %s end)
+return ret 
+end
+]]
+
+    return gen_name, string.format(format, 
+                                   gen_name,
+                                   left_dep .. lr_connector .. right_dep,
+                                   and_code)
+end
+
 function solve(env) 
     local filter_code = [[
 function filter(l, pred)
@@ -176,7 +236,9 @@ avail = %s
                                                        and string.sub(v, -5, -3) == 'ten' end )
     local rhs_huns = filter(variables, function (v) return string.sub(v, 1, 1) == 'r' 
                                                        and string.sub(v, -5, -3) == 'hun' end )
-
+    local x, y = one_gen("blarg", {"blah", "ikky"}, {"warp", "zap"})
+    print(x)
+    print(y)
 
     return filter_code 
         .. avail_code
