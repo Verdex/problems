@@ -163,6 +163,20 @@ avail = %s
     local constants_list = map(pre_defined, function(c) return c.name .. " = " .. c.value end)
     local constants_code = table.concat( constants_list, "\n" )
 
+    local lhs_ones = filter(variables, function (v) return string.sub(v, 1, 1) == 'l' 
+                                                       and string.sub(v, -5, -3) == 'one' end )
+    local lhs_tens = filter(variables, function (v) return string.sub(v, 1, 1) == 'l' 
+                                                       and string.sub(v, -5, -3) == 'ten' end )
+    local lhs_huns = filter(variables, function (v) return string.sub(v, 1, 1) == 'l' 
+                                                       and string.sub(v, -5, -3) == 'hun' end )
+    local rhs_ones = filter(variables, function (v) return string.sub(v, 1, 1) == 'r' 
+                                                       and string.sub(v, -5, -3) == 'one' end )
+    local rhs_tens = filter(variables, function (v) return string.sub(v, 1, 1) == 'r' 
+                                                       and string.sub(v, -5, -3) == 'ten' end )
+    local rhs_huns = filter(variables, function (v) return string.sub(v, 1, 1) == 'r' 
+                                                       and string.sub(v, -5, -3) == 'hun' end )
+
+
     return filter_code 
         .. avail_code
         .. constants_code
