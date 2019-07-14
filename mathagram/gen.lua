@@ -192,6 +192,38 @@ end
                                    and_code)
 end
 
+function ten_gen(target, lhs_one, rhs_one, lhs_ten, rhs_ten)
+    local gen_name = gensym(target .. '_ten_gen')
+    local lhs = append(lhs_one, lhs_ten)
+    local rhs = append(rhs_one, rhs_ten)
+    local left_dep = table.concat(lhs, ", ")
+    local right_dep = table.concat(rhs, ", ")
+    local lr_connector = ''
+    if right_dep ~= '' and left_dep ~= '' then
+        lr_connector = ', '
+    end
+    local deps = append(lhs, rhs)
+    local and_code = table.concat( map(deps, function (d) return d .. " ~= a" end), " and " )
+    local empty_return_predicate_code = 
+        "(" .. table.concat(lhs_one, " + ") .. ") % 10"
+        .. " ~= "
+        .. "(" .. table.concat(rhs_one, " + " ) .. ") % 10"
+
+    local format = [[
+function %s(%s)
+if %s then return {} end
+local ret = filter(avail, function(a) return %s end)
+return ret 
+end
+]]
+
+    return gen_name, string.format(format, 
+                                   gen_name,
+                                   left_dep .. lr_connector .. right_dep,
+                                   empty_return_predicate_code,
+                                   and_code)
+end
+
 function solve(env) 
     local filter_code = [[
 function filter(l, pred)
@@ -222,7 +254,7 @@ avail = %s
     end
 
     local constants_list = map(pre_defined, function(c) return c.name .. " = " .. c.value end)
-    local constants_code = table.concat( constants_list, "\n" ) .. "\n"
+    local constants_code = table.concat( constants_list, "\n" ) .. "\n\n"
 
     local lhs_ones = filter(variables, function (v) return string.sub(v, 1, 1) == 'l' 
                                                        and string.sub(v, -5, -3) == 'one' end )
@@ -243,6 +275,24 @@ avail = %s
     for _, v in ipairs(lhs_ones) do
         local gen_name, gen_code = one_gen(v, lhs_one_dep, {})
         lhs_one_dep[#lhs_one_dep+1] = v
+        generators_code[#generators_code+1] = gen_code 
+    end
+    local rhs_one_dep = {}
+    for _, v in ipairs(rhs_ones) do
+        local gen_name, gen_code = one_gen(v, lhs_one_dep, rhs_one_dep)
+        rhs_one_dep[#rhs_one_dep+1] = v
+        generators_code[#generators_code+1] = gen_code 
+    end
+    local lhs_ten_dep = {}
+    for _, v in ipairs(lhs_tens) do
+        local gen_name, gen_code = ten_gen(v, lhs_one_dep, rhs_one_dep, lhs_ten_dep, {})
+        lhs_ten_dep[#lhs_ten_dep+1] = v
+        generators_code[#generators_code+1] = gen_code 
+    end
+    local rhs_ten_dep = {}
+    for _, v in ipairs(rhs_tens) do
+        local gen_name, gen_code = ten_gen(v, lhs_one_dep, rhs_one_dep, lhs_ten_dep, rhs_ten_dep)
+        rhs_ten_dep[#rhs_ten_dep+1] = v
         generators_code[#generators_code+1] = gen_code 
     end
 
