@@ -178,8 +178,10 @@ end
             local r = filter(ones, function (o) return string.sub(o, 1, 1) == 'r' end)
             local l = filter(ones, function (o) return string.sub(o, 1, 1) == 'l' end)
             if string.sub(target, 1, 1) == 'l' then
+                l = filter(l, function(x) return x ~= target end)
                 l[#l+1] = 'a' 
             else
+                r = filter(r, function(x) return x ~= target end)
                 r[#r+1] = 'a' 
             end
             and_code = "(" .. table.concat(l, " + ") .. ") % 10"
@@ -206,26 +208,39 @@ end
                                    and_code)
 end
 
-function ten_gen(target, deps)
+function ten_gen(target, deps, tens, ones, tier)
     local gen_name = gensym(target .. '_ten_gen')
-    local lhs = append(lhs_one, lhs_ten)
-    local rhs = append(rhs_one, rhs_ten)
-    local left_dep = table.concat(lhs, ", ")
-    local right_dep = table.concat(rhs, ", ")
-    local lr_connector = ''
-    if right_dep ~= '' and left_dep ~= '' then
-        lr_connector = ', '
-    end
-    local deps = append(lhs, rhs)
+    local deps_code = table.concat(deps, ", ")
     local and_code = table.concat( map(deps, function (d) return d .. " ~= a" end), " and " )
-    local empty_return_predicate_code = 
-        "(" .. table.concat(lhs_one, " + ") .. ") % 10"
-        .. " ~= "
-        .. "(" .. table.concat(rhs_one, " + " ) .. ") % 10"
+
+    if tier == 1 then
+        if (#tens + #ones) - #deps == 3 then
+            local r = filter(tens, function (o) return string.sub(o, 1, 1) == 'r' end)
+            local l = filter(tens, function (o) return string.sub(o, 1, 1) == 'l' end)
+            if string.sub(target, 1, 1) == 'l' then
+                l = filter(l, function(x) return x ~= target end)
+                l[#l+1] = 'a' 
+            else
+                r = filter(r, function(x) return x ~= target end)
+                r[#r+1] = 'a' 
+            end
+            local r_ones = filter(ones, function(o) return string.sub(o, 1, 1) == 'r' end)
+            local l_ones = filter(ones, function(o) return string.sub(o, 1, 1) == 'l' end)
+            and_code = "(((" .. table.concat(l, " + ") .. ") * 10) + (" 
+                     .. table.concat(l_ones, " + ") .. ")) % 100"
+                     .. " == "
+                     .. "(((" .. table.concat(r, " + " ) .. ") * 10) + ("
+                     .. table.concat(r_ones, " + ") .. ")) % 100"
+            
+        end
+    elseif tier == 2 then
+        error("Implment tier 2 in one_gen")
+    elseif tier == 3 then
+        error("Implment tier 3 in one_gen")
+    end
 
     local format = [[
 function %s(%s)
-    if %s then return {} end
     local ret = filter(avail, function(a) return %s end)
     return ret 
 end
@@ -233,8 +248,7 @@ end
 
     return gen_name, string.format(format, 
                                    gen_name,
-                                   left_dep .. lr_connector .. right_dep,
-                                   empty_return_predicate_code,
+                                   deps_code,
                                    and_code)
 end
 
@@ -275,18 +289,17 @@ avail = %s
     local ones_var = filter(variables, function (v) return string.sub(v, -5, -3) == 'one' end)
     local tens_var = filter(variables, function (v) return string.sub(v, -5, -3) == 'ten' end)
 
-    local lhs_tens = filter(variables, function (v) return string.sub(v, 1, 1) == 'l' 
-                                                       and string.sub(v, -5, -3) == 'ten' end )
     local lhs_huns = filter(variables, function (v) return string.sub(v, 1, 1) == 'l' 
                                                        and string.sub(v, -5, -3) == 'hun' end )
-    local rhs_tens = filter(variables, function (v) return string.sub(v, 1, 1) == 'r' 
-                                                       and string.sub(v, -5, -3) == 'ten' end )
     local rhs_huns = filter(variables, function (v) return string.sub(v, 1, 1) == 'r' 
                                                        and string.sub(v, -5, -3) == 'hun' end )
 
     local ones = append(ones_var, filter(map(pre_defined, 
                                              function (p) return p.name end),
                                          function (v) return string.sub(v, -5, -3) == 'one' end))
+    local tens = append(tens_var, filter(map(pre_defined, 
+                                             function (p) return p.name end),
+                                         function (v) return string.sub(v, -5, -3) == 'ten' end))
     
     local dep = {}
     local generators_code = {}
@@ -296,11 +309,11 @@ avail = %s
         generators_code[#generators_code+1] = gen_code 
     end
 
---[[    for _, v in ipairs(tens_var) do
-        local gen_name, gen_code = ten_gen(v, dep, l_ones, r_ones)
+    for _, v in ipairs(tens_var) do
+        local gen_name, gen_code = ten_gen(v, dep, tens, ones, tier)
         dep[#dep+1] = v
         generators_code[#generators_code+1] = gen_code 
-    end--]]
+    end
 
     return filter_code 
         .. avail_code
