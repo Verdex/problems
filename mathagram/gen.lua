@@ -244,6 +244,20 @@ function solve(env)
     local tier = determine_tier(env)
 
     local filter_code = [[
+function sum(l)
+    local ret = 0
+    for _, v in ipairs(l) do
+        ret = ret + v
+    end
+    return ret
+end
+
+function predicate(l_hun, r_hun, l_ten, r_ten, l_one, r_one)
+    local l_tot = (sum(l_hun) * 100) + (sum(l_ten) * 10) + sum(l_one)
+    local r_tot = (sum(r_hun) * 100) + (sum(r_ten) * 10) + sum(r_one)
+    return l_tot < 1000 and r_tot < 1000 and l_tot == r_tot
+end
+
 function filter(l, pred)
     local ret = {}
     for _, k in ipairs(l) do
@@ -290,28 +304,63 @@ avail = %s
     
     local dep = {}
     local generators_code = {}
+    local generator_names = {}
     for _, v in ipairs(ones_var) do
         local gen_name, gen_code = one_gen(v, dep, ones, #ones_var)
         dep[#dep+1] = v
         generators_code[#generators_code+1] = gen_code 
+        generator_names[#generator_names+1] = gen_name
     end
 
     for _, v in ipairs(tens_var) do
         local gen_name, gen_code = ten_gen(v, dep, tens, ones, #tens_var + #ones_var)
         dep[#dep+1] = v
         generators_code[#generators_code+1] = gen_code 
+        generator_names[#generator_names+1] = gen_name
     end
 
     for _, v in ipairs(huns_var) do
         local gen_name, gen_code = hun_gen(v, dep, huns, tens, ones, #huns_var + #tens_var + #ones_var)
         dep[#dep+1] = v
         generators_code[#generators_code+1] = gen_code 
+        generator_names[#generator_names+1] = gen_name
     end
+
+    local gens = {}
+    local stage_two_deps = {}
+    for i = 1, #dep do
+        gens[#gens+1] = { name = dep[i]; 
+                          gen = generator_names[i] .. "(" .. table.concat(stage_two_deps, ", ") ..  ")" }
+        stage_two_deps[#stage_two_deps+1] = dep[i]
+    end
+
+    local output_params = map(append( append( huns, tens), ones ), 
+                              function (x) return string.format("['%s'] = %s", x, x) end )
+
+    local l_one = filter(ones, function(x) return string.sub(x, 1, 1) == 'l' end)
+    local r_one = filter(ones, function(x) return string.sub(x, 1, 1) == 'r' end)
+    local l_ten = filter(tens, function(x) return string.sub(x, 1, 1) == 'l' end)
+    local r_ten = filter(tens, function(x) return string.sub(x, 1, 1) == 'r' end)
+    local l_hun = filter(huns, function(x) return string.sub(x, 1, 1) == 'l' end)
+    local r_hun = filter(huns, function(x) return string.sub(x, 1, 1) == 'r' end)
+
+    local pred_code = "predicate( {" .. table.concat( l_hun, ", " ) .. "}, "
+                   .. "{" .. table.concat( r_hun, ", " ) .. "}, "
+                   .. "{" .. table.concat( l_ten, ", " ) .. "}, "
+                   .. "{" .. table.concat( r_ten, ", " ) .. "}, "
+                   .. "{" .. table.concat( l_one, ", " ) .. "}, "
+                   .. "{" .. table.concat( r_one, ", " ) .. "} )"
+
+    local comp_code = "local solution = " 
+                    .. comprehension( "{" .. table.concat( output_params, ", " ) .. "}",
+                                      gens,
+                                      pred_code )
 
     return filter_code 
         .. avail_code
         .. constants_code
         .. table.concat(generators_code, "\n")
+        .. comp_code
 end
 
 local output = solve { lhs_hun_1 = 1
