@@ -143,7 +143,7 @@ local z = comprehension("ikky", { {name = "blarg"; gen = "{1,2,3}"  }
                                   , {name = "ikky"; gen = "{4,5,6}" } }, "true") 
 
 
-function one_gen(target, deps, ones, tier)
+function one_gen(target, deps, ones, var_count)
     local gen_name = gensym(target .. '_one_gen')
     if #deps == 0 then
         return gen_name, string.format([[
@@ -155,26 +155,20 @@ end
     local deps_code = table.concat(deps, ", ")
     local and_code = table.concat( map(deps, function (d) return d .. " ~= a" end), " and " )
 
-    if tier == 1 then
-        if #ones - #deps == 2 then
-            local r = filter(ones, function (o) return string.sub(o, 1, 1) == 'r' end)
-            local l = filter(ones, function (o) return string.sub(o, 1, 1) == 'l' end)
-            if string.sub(target, 1, 1) == 'l' then
-                l = filter(l, function(x) return x ~= target end)
-                l[#l+1] = 'a' 
-            else
-                r = filter(r, function(x) return x ~= target end)
-                r[#r+1] = 'a' 
-            end
-            and_code = "(" .. table.concat(l, " + ") .. ") % 10"
-                     .. " == "
-                     .. "(" .. table.concat(r, " + " ) .. ") % 10"
-            
+    if #deps == var_count - 1 then
+        local r = filter(ones, function (o) return string.sub(o, 1, 1) == 'r' end)
+        local l = filter(ones, function (o) return string.sub(o, 1, 1) == 'l' end)
+        if string.sub(target, 1, 1) == 'l' then
+            l = filter(l, function(x) return x ~= target end)
+            l[#l+1] = 'a' 
+        else
+            r = filter(r, function(x) return x ~= target end)
+            r[#r+1] = 'a' 
         end
-    elseif tier == 2 then
-        error("Implment tier 2 in one_gen")
-    elseif tier == 3 then
-        error("Implment tier 3 in one_gen")
+        and_code = "(" .. table.concat(l, " + ") .. ") % 10"
+                 .. " == "
+                 .. "(" .. table.concat(r, " + " ) .. ") % 10"
+        
     end
 
     local format = [[
@@ -190,36 +184,48 @@ end
                                    and_code)
 end
 
-function ten_gen(target, deps, tens, ones, tier)
+function ten_gen(target, deps, tens, ones, var_count)
     local gen_name = gensym(target .. '_ten_gen')
     local deps_code = table.concat(deps, ", ")
     local and_code = table.concat( map(deps, function (d) return d .. " ~= a" end), " and " )
 
-    if tier == 1 then
-        if (#tens + #ones) - #deps == 3 then
-            local r = filter(tens, function (o) return string.sub(o, 1, 1) == 'r' end)
-            local l = filter(tens, function (o) return string.sub(o, 1, 1) == 'l' end)
-            if string.sub(target, 1, 1) == 'l' then
-                l = filter(l, function(x) return x ~= target end)
-                l[#l+1] = 'a' 
-            else
-                r = filter(r, function(x) return x ~= target end)
-                r[#r+1] = 'a' 
-            end
-            local r_ones = filter(ones, function(o) return string.sub(o, 1, 1) == 'r' end)
-            local l_ones = filter(ones, function(o) return string.sub(o, 1, 1) == 'l' end)
-            and_code = "(((" .. table.concat(l, " + ") .. ") * 10) + (" 
-                     .. table.concat(l_ones, " + ") .. ")) % 100"
-                     .. " == "
-                     .. "(((" .. table.concat(r, " + " ) .. ") * 10) + ("
-                     .. table.concat(r_ones, " + ") .. ")) % 100"
-            
+    if #deps == var_count - 1 then
+        local r = filter(tens, function (o) return string.sub(o, 1, 1) == 'r' end)
+        local l = filter(tens, function (o) return string.sub(o, 1, 1) == 'l' end)
+        if string.sub(target, 1, 1) == 'l' then
+            l = filter(l, function(x) return x ~= target end)
+            l[#l+1] = 'a' 
+        else
+            r = filter(r, function(x) return x ~= target end)
+            r[#r+1] = 'a' 
         end
-    elseif tier == 2 then
-        error("Implment tier 2 in one_gen")
-    elseif tier == 3 then
-        error("Implment tier 3 in one_gen")
+        local r_ones = filter(ones, function(o) return string.sub(o, 1, 1) == 'r' end)
+        local l_ones = filter(ones, function(o) return string.sub(o, 1, 1) == 'l' end)
+        and_code = "(((" .. table.concat(l, " + ") .. ") * 10) + (" 
+                 .. table.concat(l_ones, " + ") .. ")) % 100"
+                 .. " == "
+                 .. "(((" .. table.concat(r, " + " ) .. ") * 10) + ("
+                 .. table.concat(r_ones, " + ") .. ")) % 100"
+        
     end
+
+    local format = [[
+function %s(%s)
+    local ret = filter(avail, function(a) return %s end)
+    return ret 
+end
+]]
+
+    return gen_name, string.format(format, 
+                                   gen_name,
+                                   deps_code,
+                                   and_code)
+end
+
+function hun_gen(target, deps, huns, tens, ones, var_count)
+    local gen_name = gensym(target .. '_hun_gen')
+    local deps_code = table.concat(deps, ", ")
+    local and_code = table.concat( map(deps, function (d) return d .. " ~= a" end), " and " )
 
     local format = [[
 function %s(%s)
@@ -270,11 +276,7 @@ avail = %s
 
     local ones_var = filter(variables, function (v) return string.sub(v, -5, -3) == 'one' end)
     local tens_var = filter(variables, function (v) return string.sub(v, -5, -3) == 'ten' end)
-
-    local lhs_huns = filter(variables, function (v) return string.sub(v, 1, 1) == 'l' 
-                                                       and string.sub(v, -5, -3) == 'hun' end )
-    local rhs_huns = filter(variables, function (v) return string.sub(v, 1, 1) == 'r' 
-                                                       and string.sub(v, -5, -3) == 'hun' end )
+    local huns_var = filter(variables, function (v) return string.sub(v, -5, -3) == 'hun' end)
 
     local ones = append(ones_var, filter(map(pre_defined, 
                                              function (p) return p.name end),
@@ -282,17 +284,26 @@ avail = %s
     local tens = append(tens_var, filter(map(pre_defined, 
                                              function (p) return p.name end),
                                          function (v) return string.sub(v, -5, -3) == 'ten' end))
+    local huns = append(huns_var, filter(map(pre_defined, 
+                                             function (p) return p.name end),
+                                         function (v) return string.sub(v, -5, -3) == 'hun' end))
     
     local dep = {}
     local generators_code = {}
     for _, v in ipairs(ones_var) do
-        local gen_name, gen_code = one_gen(v, dep, ones, tier)
+        local gen_name, gen_code = one_gen(v, dep, ones, #ones_var)
         dep[#dep+1] = v
         generators_code[#generators_code+1] = gen_code 
     end
 
     for _, v in ipairs(tens_var) do
-        local gen_name, gen_code = ten_gen(v, dep, tens, ones, tier)
+        local gen_name, gen_code = ten_gen(v, dep, tens, ones, #tens_var + #ones_var)
+        dep[#dep+1] = v
+        generators_code[#generators_code+1] = gen_code 
+    end
+
+    for _, v in ipairs(huns_var) do
+        local gen_name, gen_code = hun_gen(v, dep, huns, tens, ones, #huns_var + #tens_var + #ones_var)
         dep[#dep+1] = v
         generators_code[#generators_code+1] = gen_code 
     end
@@ -316,31 +327,6 @@ local output = solve { lhs_hun_1 = 1
 
 print(output)
 --[[
-
-emit filter 
-
-avail = emit avail from env
-
-forall env
-    if field is already defined then
-        create variable to hold defined value
-
-if lhs_one_1 already exists then emit nothing
-if any rhs versions exist then emit 
-lhs_one_1_gen() =
-    avail = avail filtered such that it will be less than the sum of already defined rhs versions (can optimize by - 1 per undefined rhs version, also subtract any already defined lhs versions)
-    
-    return avail
-
-if any lhs versions exist AND no rhs versions exist then emit 
-lhs_one_1_gen() =
-    avail = avail filtered such that it will be less than the number of undefined rhs versions (also subtract any already defined lhs versions)
-    
-    return avail
-        
-lhs_one_2_gen(lhs_one_1) =
-...
-    
      
 
 solutions = [ lhs_hun_1 ... rhs_one_n 
