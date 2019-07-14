@@ -356,14 +356,25 @@ avail = %s
                                       gens,
                                       pred_code )
 
+    local print_code = [[
+
+for _, v in ipairs(solution) do
+    for k, v in pairs(v) do
+        print(k, v)
+    end
+    print( "\n" )
+end
+]]
+
     return filter_code 
         .. avail_code
         .. constants_code
         .. table.concat(generators_code, "\n")
         .. comp_code
+        .. print_code
 end
 
-local output = solve { lhs_hun_1 = 1
+--[[local output = solve { lhs_hun_1 = 1
       , lhs_ten_1 = 0
       , lhs_one_1 = 0
       , lhs_hun_2 = 0
@@ -372,24 +383,27 @@ local output = solve { lhs_hun_1 = 1
       , rhs_hun_1 = 4
       , rhs_ten_1 = 6
       , rhs_one_1 = 8
-      }
+      } --]]
 
+local output = solve { lhs_hun_1 = 0
+                     , lhs_ten_1 = 0
+                     , lhs_one_1 = 0
+                     , lhs_hun_2 = 0
+                     , lhs_ten_2 = 0
+                     , lhs_one_2 = 0
+                     , lhs_hun_3 = 5
+                     , lhs_ten_3 = 0
+                     , lhs_one_3 = 3
+                     , lhs_hun_4 = 1
+                     , lhs_ten_4 = 2
+                     , lhs_one_4 = 3
+                     , rhs_hun_1 = 0
+                     , rhs_ten_1 = 0
+                     , rhs_one_1 = 0
+                     , rhs_hun_2 = 7
+                     , rhs_ten_2 = 9
+                     , rhs_one_2 = 5
+                     }
+    
 print(output)
---[[
-     
 
-solutions = [ lhs_hun_1 ... rhs_one_n 
-              | 
-              lhs_one_1 <- lhs_one_1_gen() -- do not create generator variable if it's a const
-              lhs_one_2 <- lhs_one_2_gen(lhs_one_1)
-              ...
-              |
-              lhs_hun_1 * 100 + lhs_ten_1 * 10 + lhs_one_1 +
-              ...
-              == 
-              rhs_hun_1 * 100 + rhs_ten_1 * 10 + rhs_one_1 + 
-              ...
-            ]
-
-print( solutions )
---]]
