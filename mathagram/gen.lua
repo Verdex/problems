@@ -143,24 +143,6 @@ local z = comprehension("ikky", { {name = "blarg"; gen = "{1,2,3}"  }
                                   , {name = "ikky"; gen = "{4,5,6}" } }, "true") 
 
 
-        --[=[local format = [[
-function %s(%s)
-    if %s then return {} end
-    local ret = filter(avail, function(a) return %s end)
-    return ret 
-end
-]]
-
-        local empty_return_predicate_code = 
-            "(" .. table.concat(lhs, " + ") .. ") % 10"
-            .. " ~= "
-            .. "(" .. table.concat(rhs, " + " ) .. ") % 10"
-        return gen_name, string.format(format, 
-                                       gen_name,
-                                       left_dep .. lr_connector .. right_dep,
-                                       empty_return_predicate_code,
-                                       and_code) --]=]
-
 function one_gen(target, deps, ones, tier)
     local gen_name = gensym(target .. '_one_gen')
     if #deps == 0 then
