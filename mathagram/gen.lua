@@ -96,7 +96,21 @@ function avail_from_env(env)
                  1, 2, 3, 4, 5, 6, 7, 8, 9, 
                  1, 2, 3, 4, 5, 6, 7, 8, 9 }
     end
-    local avail = filter(pool, function (p) return forall(used, function(u) return u ~= p end) end )
+    local avail = {}
+    for _, v in ipairs(pool) do
+        if forall(used, function(u) return u ~= v end) then
+            avail[#avail+1] = v
+        else
+            local remove_index = 0
+            for i, u in ipairs(used) do
+                if u == v then
+                    remove_index = i
+                end
+            end
+            table.remove(used, remove_index)
+        end
+    end
+    --local avail = filter(pool, function (p) return forall(used, function(u) return u ~= p end) end )
     return "{" .. table.concat( avail, ", " ) .. "}" 
 end
 
