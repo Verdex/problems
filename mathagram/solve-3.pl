@@ -19,7 +19,8 @@ solve(H1, T1, O1, H2, T2, O2, H3, T3, O3) :-
     R is (H3 * 100) + (T3 * 10) + O3,
     L is R.
 
-solve(H1, T1, O1, H2, T2, O2, H3, T3, O3, H4, T4, O4, H5, T5, O5, H6, T6, O6) :-
+solve(H1, T1, O1, H2, T2, O2, H3, T3, O3, 
+      H4, T4, O4, H5, T5, O5, H6, T6, O6) :-
     gen(O1, [1, 2, 3, 4, 5, 6, 7, 8, 9,
              1, 2, 3, 4, 5, 6, 7, 8, 9], O1Rem),
     gen(O2, O1Rem, O2Rem),
@@ -36,8 +37,8 @@ solve(H1, T1, O1, H2, T2, O2, H3, T3, O3, H4, T4, O4, H5, T5, O5, H6, T6, O6) :-
     gen(T4, T3Rem, T4Rem),
     gen(T5, T4Rem, T5Rem),
     gen(T6, T5Rem, T6Rem),
-    LT is (T1 + T2 + T3 + T4 + ((O1 + O2 + O3 + O4) // 10)) mod 10,
-    RT is (T5 + T6 + ((O5 + O6) // 10)  mod 10,
+    LT is (((T1 + T2 + T3 + T4) * 10) + O1 + O2 + O3 + O4) mod 100,
+    RT is (((T5 + T6) * 10) + O5 + O6)  mod 100,
     LT is RT,
     gen(H1, T6Rem, H1Rem),
     gen(H2, H1Rem, H2Rem),
